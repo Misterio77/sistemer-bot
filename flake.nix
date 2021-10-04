@@ -12,19 +12,21 @@
   outputs = { self, nixpkgs, flake-utils, naersk }:
     flake-utils.lib.eachDefaultSystem (system:
       let
+        name = "sistemer-bot";
         pkgs = nixpkgs.legacyPackages.${system};
         naersk-lib = naersk.lib."${system}";
       in rec {
-        packages.backend-uget = naersk-lib.buildPackage {
-          pname = "sistemerb-bot";
+        packages.${name} = naersk-lib.buildPackage {
+          pname = name;
+          buildInputs = with pkgs; [ openssl pkg-config ];
           root = ./.;
         };
-        defaultPackage = packages.sistemer-bot;
+        defaultPackage = packages.${name};
 
-        apps.backend-uget = flake-utils.lib.mkApp {
-          drv = packages.sistemer-bot;
+        apps.${name} = flake-utils.lib.mkApp {
+          drv = packages.${name};
         };
-        defaultApp = apps.sistemer-bot;
+        defaultApp = apps.${name};
 
         devShell = pkgs.mkShell {
           buildInputs = with pkgs;
@@ -34,6 +36,8 @@
               rust-analyzer
               rustfmt
               clippy
+              pkgconfig
+              openssl
             ];
         };
       });
