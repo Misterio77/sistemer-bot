@@ -20,6 +20,8 @@ fn sanitize_line(line: &str) -> Result<String> {
     let line = Regex::new("</?p>")?.replace_all(&line, "");
     // Remove email links
     let line = Regex::new("<a href=\"mailto:.*>(.*)</a>")?.replace(&line, "$1");
+    // Fix calculadora links
+    let line = Regex::new("/notes/bsi/calculadora")?.replace(&line, "https://misterio.me/notes/bsi/calculadora");
 
     log::info!("Em: {:?}", line);
 
