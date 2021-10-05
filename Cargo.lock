@@ -1138,6 +1138,7 @@ name = "sistemer-bot"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "dotenv",
  "log",
  "pretty_env_logger",

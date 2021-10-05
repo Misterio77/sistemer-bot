@@ -14,15 +14,13 @@ pub async fn get_disciplina(disciplina: &str) -> Result<String> {
     let mut adding = false;
     for line in fulltext.lines() {
         if start_pattern.is_match(&line.to_lowercase()) {
-            log::info!("Iniciando escrita");
-            output.push_str(&crate::sanitize_line(line)?);
+            output.push_str(&crate::sanitize_line(line, false)?);
             adding = true;
         } else if adding {
             if stop_pattern.is_match(line) {
-                log::info!("Finalizando escrita:\n{}", output);
                 return Ok(output);
             } else {
-                output.push_str(&crate::sanitize_line(line)?);
+                output.push_str(&crate::sanitize_line(line, false)?);
             }
         }
     }
