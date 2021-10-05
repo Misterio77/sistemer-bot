@@ -7,7 +7,7 @@ pub async fn get_disciplina(disciplina: &str) -> Result<String> {
         .text()
         .await?;
 
-    let start_pattern = Regex::new(&format!("<h2.*>.*{}.*</h2>", disciplina.to_lowercase()))?;
+    let start_pattern = Regex::new(&format!("<h2.*{}.*</h2>", disciplina.to_lowercase()))?;
     let stop_pattern = Regex::new("<hr />")?;
 
     let mut output: String = "".into();

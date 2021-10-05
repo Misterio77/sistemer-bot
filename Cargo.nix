@@ -3146,7 +3146,7 @@ rec {
       };
       "sistemer-bot" = rec {
         crateName = "sistemer-bot";
-        version = "1.1.0";
+        version = "1.1.1";
         edition = "2018";
         crateBin = [
           { name = "sistemer-bot"; path = "src/main.rs"; }
