@@ -5,7 +5,7 @@ use teloxide::utils::command::BotCommand;
 use anyhow::Result;
 use dotenv::dotenv;
 
-use sistemer_bot::disciplina;
+use sistemer_bot::{horarios, disciplina};
 
 #[derive(BotCommand)]
 #[command(rename = "lowercase", description = "These commands are supported:")]
@@ -14,6 +14,8 @@ enum Command {
     Help,
     #[command(description = "mostra info de uma disciplina.")]
     Disciplina(String),
+    #[command(description = "lista os horários.")]
+    Horarios,
 }
 
 async fn answer(cx: UpdateWithCx<AutoSend<Bot>, Message>, command: Command) -> Result<()> {
@@ -21,6 +23,11 @@ async fn answer(cx: UpdateWithCx<AutoSend<Bot>, Message>, command: Command) -> R
         Command::Help => cx.answer(Command::descriptions()).await?,
         Command::Disciplina(disciplina) => {
             cx.answer(disciplina::get_disciplina(&disciplina).await?)
+                .parse_mode(Html)
+                .await?
+        }
+        Command::Horarios => {
+            cx.answer(horarios::get_horarios().await?)
                 .parse_mode(Html)
                 .await?
         }

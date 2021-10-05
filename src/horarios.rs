@@ -1,13 +1,13 @@
 use anyhow::Result;
 use regex::Regex;
 
-pub async fn get_disciplina(disciplina: &str) -> Result<String> {
+pub async fn get_horarios() -> Result<String> {
     let fulltext = reqwest::get("https://misterio.me/notes/bsi/disciplinas-2021-2.html")
         .await?
         .text()
         .await?;
 
-    let start_pattern = Regex::new(&format!("<h2.*>.*{}.*</h2>", disciplina.to_lowercase()))?;
+    let start_pattern = Regex::new("<h2 id=\"horários\">")?;
     let stop_pattern = Regex::new("<hr />")?;
 
     let mut output: String = "".into();
@@ -26,6 +26,5 @@ pub async fn get_disciplina(disciplina: &str) -> Result<String> {
             }
         }
     }
-
-    Ok("Disciplina não encontrada!".into())
+    return Ok(output);
 }
