@@ -2366,9 +2366,9 @@ rec {
       };
       "quote" = rec {
         crateName = "quote";
-        version = "1.0.9";
+        version = "1.0.10";
         edition = "2018";
-        sha256 = "19rjmfqzk26rxbgxy5j2ckqc2v12sw2xw8l4gi8bzpn2bmsbkl63";
+        sha256 = "01ff7a76f871ggnby57iagw6499vci4bihcr11g6bqzjlp38rg1q";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -3146,7 +3146,7 @@ rec {
       };
       "sistemer-bot" = rec {
         crateName = "sistemer-bot";
-        version = "0.1.0";
+        version = "1.1.0";
         edition = "2018";
         crateBin = [
           { name = "sistemer-bot"; path = "src/main.rs"; }
