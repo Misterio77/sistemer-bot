@@ -3146,7 +3146,7 @@ rec {
       };
       "sistemer-bot" = rec {
         crateName = "sistemer-bot";
-        version = "1.1.1";
+        version = "1.1.2";
         edition = "2018";
         crateBin = [
           { name = "sistemer-bot"; path = "src/main.rs"; }
@@ -3190,6 +3190,10 @@ rec {
             name = "tokio";
             packageId = "tokio";
             features = [ "rt-multi-thread" "macros" ];
+          }
+          {
+            name = "unidecode";
+            packageId = "unidecode";
           }
         ];
 
@@ -4092,6 +4096,16 @@ rec {
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
+      };
+      "unidecode" = rec {
+        crateName = "unidecode";
+        version = "0.3.0";
+        edition = "2015";
+        sha256 = "1p0sm8j9223kw3iincv60s746s88k09xcaqf8nkx3w83isfv2as0";
+        authors = [
+          "Amit Chowdhury <amitc97@gmail.com>"
+        ];
+
       };
       "url" = rec {
         crateName = "url";
