@@ -3158,6 +3158,10 @@ rec {
             packageId = "anyhow";
           }
           {
+            name = "chrono";
+            packageId = "chrono";
+          }
+          {
             name = "dotenv";
             packageId = "dotenv";
           }
