@@ -3,36 +3,47 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    flake-compat.url = "github:edolstra/flake-compat";
-    flake-compat.flake = false;
+    utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs, flake-utils, flake-compat }:
-  flake-utils.lib.eachDefaultSystem (system:
+
+  outputs = { self, nixpkgs, utils }:
     let
       name = "sistemer-bot";
-      pkgs = (import nixpkgs { inherit system; });
-    in rec {
-      packages.${name} = (import ./Cargo.nix { inherit pkgs; }).rootCrate.build;
-      defaultPackage = packages.${name};
-      apps.${name} = {
-        type = "app";
-        program = "${packages.${name}}/bin/${name}";
+      overlay = final: prev: {
+        ${name} = final.callPackage ./default.nix { };
       };
-      defaultApp = apps.${name};
-      devShell = pkgs.mkShell {
-        buildInputs = with pkgs;
-          [
-            cargo
-            clippy
-            crate2nix
-            openssl
-            pkgconfig
-            rust-analyzer
-            rustc
-            rustfmt
-          ];
-      };
-    }
-  );
+      overlays = [ overlay ];
+    in
+    rec {
+      inherit overlay overlays;
+
+      nixosModules."${name}" = import ./module.nix {};
+      nixosModule = nixosModules."${name}";
+    } //
+    (utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = (import nixpkgs { inherit system overlays; });
+      in
+      rec {
+        # nix build
+        packages.${name} = pkgs.${name};
+        defaultPackage = packages.${name};
+
+        # nix run
+        apps.${name} = utils.lib.mkApp { drv = packages.${name}; };
+        defaultApp = apps.${name};
+
+        # nix develop
+        devShell = pkgs.mkShell {
+          inputsFrom = [ defaultPackage ];
+          buildInputs = with pkgs;
+            [
+              clippy
+              rust-analyzer
+              rustc
+              rustfmt
+            ];
+        };
+      }
+    ));
 }
