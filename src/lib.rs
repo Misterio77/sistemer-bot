@@ -1,44 +1,195 @@
-pub mod agora;
-pub mod disciplina;
-pub mod disciplinas;
-pub mod hoje;
-pub mod horarios;
-pub mod proxima;
+pub use anyhow::Result;
 
-use anyhow::Result;
-use chrono::NaiveTime;
-use regex::Regex;
+use anyhow::anyhow;
+use indoc::formatdoc;
+use serde::Deserialize;
+const URL: &str = "http://127.0.0.1:4000";
 
-fn get_intervalo(input: &str) -> Result<(NaiveTime, NaiveTime)> {
-    let inicio = Regex::new("^(.*) - .*:.*$")?.replace(input, "$1");
-    let fim = Regex::new("^.* - (.*):.*$")?.replace(input, "$1");
-    let parse = |x| NaiveTime::parse_from_str(x, "%H:%M");
-    Ok((parse(&inicio)?, parse(&fim)?))
+#[derive(Deserialize)]
+pub struct Disciplina {
+    codigo: String,
+    nome: String,
+    #[serde(default)]
+    optativa: bool,
+    professor: Option<Professor>,
+    plataforma: Option<Informacao>,
+    presenca: Option<Informacao>,
+    sala: Option<Informacao>,
+    avaliacoes: Option<Avaliacoes>,
 }
 
-fn sanitize_line(line: &str, remove_bold: bool) -> Result<String> {
-    let line = format!("{}\n", line);
-    // Replace headers with <b>
-    let line = Regex::new("h\\d")?.replace_all(&line, "b");
-    // Remove <ul> entire lines
-    let line = Regex::new("^ *</?ul>\n")?.replace_all(&line, "");
-    let line = Regex::new("</?ul>")?.replace_all(&line, "");
-    // Remove <li>
-    let line = Regex::new("^ *</?li>\n")?.replace_all(&line, "");
-    let line = Regex::new("</?li>")?.replace_all(&line, "");
-    // Remove <p>
-    let line = Regex::new("</?p>")?.replace_all(&line, "");
-    // Remove email links
-    let line = Regex::new("<a href=\"mailto:.*>(.*)</a>")?.replace(&line, "$1");
-    // Fix calculadora links
-    let line = Regex::new("/notes/bsi/calculadora")?
-        .replace(&line, "https://misterio.me/notes/bsi/calculadora");
+impl Disciplina {
+    pub async fn listar_disciplinas(turma: &str) -> Result<Vec<Self>> {
+        let url = format!("{}/disciplinas/{}.json", URL, turma);
+        let response = reqwest::get(&url).await?;
 
-    let line = if remove_bold {
-        Regex::new("<b.*>(.*)</b>")?.replace(&line, "$1")
-    } else {
-        line
-    };
+        let disciplinas = response.json().await?;
+        Ok(disciplinas)
+    }
+    pub async fn buscar_disciplina(turma: &str, busca: &str) -> Result<Self> {
+        let disciplinas = Self::listar_disciplinas(turma).await?;
+        let encontrado = disciplinas
+            .into_iter()
+            .find(|x| x.codigo == busca)
+            .ok_or(anyhow!("Disciplina não encontrada"))?;
+        Ok(encontrado)
+    }
 
-    Ok(line.into())
+    fn titulo(&self) -> String {
+        let codigo = &self.codigo;
+        let nome = &self.nome;
+        format!("*{codigo} - {nome}*")
+    }
+
+    fn sobre(&self) -> String {
+        let tipo = if self.optativa {
+            "optativa"
+        } else {
+            "obrigatória"
+        };
+        let prof = self
+            .professor
+            .as_ref()
+            .map(|p| p.info())
+            .unwrap_or("TBD".into());
+        let plataforma = self
+            .plataforma
+            .as_ref()
+            .map(|p| p.info())
+            .unwrap_or("TBD".into());
+        let sala = self.sala.as_ref().map(|p| p.info()).unwrap_or("TBD".into());
+        let presenca = self
+            .presenca
+            .as_ref()
+            .map(|p| p.info())
+            .unwrap_or("TBD".into());
+
+        formatdoc!(
+            "
+            *Sobre*
+            _Tipo_: {tipo}
+            _Prof_: {prof}
+            _Plataforma_: {plataforma}
+            _Sala_: {sala}
+            _Presença_: {presenca}"
+        )
+    }
+
+    pub fn info(&self) -> String {
+        let titulo = self.titulo();
+        let sobre = self.sobre();
+        let avaliacoes = self
+            .avaliacoes
+            .as_ref()
+            .map(|a| a.info())
+            .unwrap_or_default();
+
+        formatdoc!(
+            "
+            {titulo}
+
+            {sobre}
+            {}{avaliacoes}",
+            if avaliacoes.is_empty() { "" } else { "\n" }
+        )
+    }
+}
+
+#[derive(Deserialize)]
+struct Professor {
+    nome: String,
+    email: String,
+}
+
+impl Professor {
+    pub fn info(&self) -> String {
+        format!("{} ({})", self.nome, self.email)
+    }
+}
+
+#[derive(Deserialize)]
+struct Informacao {
+    info: String,
+    url: Option<String>,
+}
+
+impl Informacao {
+    pub fn info(&self) -> String {
+        match &self.url {
+            Some(url) => format!("[{}]({})", self.info, url),
+            None => format!("{}", self.info),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct Avaliacoes {
+    criterio: Option<String>,
+    provas: Vec<Avaliacao>,
+    atividades: Vec<Avaliacao>,
+}
+impl Avaliacoes {
+    pub fn info(&self) -> String {
+        let provas = self
+            .provas
+            .iter()
+            .map(|x| format!("  {}", x.info()))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let atividades = self
+            .atividades
+            .iter()
+            .map(|x| format!("  {}", x.info()))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let criterio = self.criterio.as_deref().unwrap_or("TBD");
+
+        formatdoc!(
+            "
+            _Criterio_: {criterio}
+            _Provas_:
+            {provas}
+            _Atividades_:
+            {atividades}"
+        )
+    }
+}
+
+#[derive(Deserialize)]
+struct Avaliacao {
+    nome: String,
+    data: Option<String>,
+    assunto: Option<String>,
+}
+
+impl Avaliacao {
+    pub fn info(&self) -> String {
+        let nome = &self.nome;
+        let data = match &self.data {
+            Some(d) => format!(": {d}"),
+            None => "".into(),
+        };
+        let assunto = match &self.assunto {
+            Some(a) => format!("- {a}"),
+            None => "".into(),
+        };
+        format!("{nome}{data}{assunto}")
+    }
+}
+
+#[derive(Deserialize)]
+struct Aulas {
+    segunda: Option<Aula>,
+    terca: Option<Aula>,
+    quarta: Option<Aula>,
+    quinta: Option<Aula>,
+    sexta: Option<Aula>,
+}
+
+#[derive(Deserialize)]
+struct Aula {
+    inicio: String,
+    fim: String,
 }
